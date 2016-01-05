@@ -1,11 +1,12 @@
-#include "pch.h"
+#include "stdafx.h"
 #include <Windows.h>
 #include <iostream>
-#include "Odbc.h"
 #include <fstream>
 #include <string>
 #include <clocale>
 #include <codecvt>
+#include "Odbc.h"
+
 
 using namespace std;
 
@@ -204,29 +205,31 @@ std::string Odbc::SelectData(std::string tableName, std::string colNames, bool w
 	}
 
 	SQLWCHAR* sql = (SQLWCHAR*)query.c_str();
-	int ret = SQLExecDirect(_hStmt, sql, SQL_NTS);
+
+	int ret = SQLAllocHandle(SQL_HANDLE_STMT, _hDbc, &_hStmt);
+	ret = SQLExecDirect(_hStmt, sql, SQL_NTS);
 
 	if (ret == SQL_SUCCESS)
 	{
 		SQLLEN resultLen;
 		char strResult[200];
+		std::string result;
 
 		while (TRUE)
 		{
 			ret = SQLFetch(_hStmt);
-			if (ret == SQL_NO_DATA)
-				return "[NO DATA]";
-
-			if (ret == SQL_ERROR || ret == SQL_SUCCESS_WITH_INFO)
-				return "An error occured\n";
+			if (ret == SQL_NO_DATA || ret == SQL_ERROR || ret == SQL_SUCCESS_WITH_INFO)
+				return result;
 
 //			SELECT
-			if (ret == SQL_SUCCESS || ret == SQL_SUCCESS_WITH_INFO)
+			if (ret == SQL_SUCCESS)
 			{
-				SQLGetData(_hStmt, 1, SQL_C_WCHAR, strResult, 200, &resultLen);
-				return std::string(strResult);
+				SQLGetData(_hStmt, 1, SQL_C_CHAR, strResult, 200, &resultLen);
+				result += std::string(strResult);
+				result += ",";
 			}
 		}
+		return result;
 	}
 	else
 		return "An error occured during excuting query!!";
